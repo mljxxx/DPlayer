@@ -121,7 +121,15 @@ class Controller {
             percentage = Math.max(percentage, 0);
             percentage = Math.min(percentage, 1);
             this.player.bar.set('played', percentage, 'width');
-            this.player.seek(this.player.bar.get('played') * this.player.video.duration);
+            if (this.player.plugins.dash && this.player.plugins.dash.isDynamic()) {
+                let dashjsPlayer = this.player.plugins.dash;
+                let liveDeley = dashjsPlayer.duration() * (1 - this.player.bar.get('played'));
+                let currentTime = Date.now() / 1000.0;
+
+                this.player.seek(currentTime - liveDeley);
+            } else {
+                this.player.seek(this.player.bar.get('played') * this.player.video.duration);
+            }
             this.player.moveBar = false;
         };
 

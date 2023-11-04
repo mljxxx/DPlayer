@@ -207,9 +207,14 @@ class DPlayer {
         if (this.danmaku) {
             this.danmaku.seek();
         }
-
-        this.bar.set('played', time / this.video.duration, 'width');
-        this.template.ptime.innerHTML = utils.secondToTime(time);
+        if (this.plugins.dash && this.plugins.dash.isDynamic()) {
+            let dashjsPlayer = this.plugins.dash;
+            this.bar.set('played', dashjsPlayer.time() / dashjsPlayer.duration(), 'width');
+            this.template.ptime.innerHTML = utils.secondToTime(dashjsPlayer.time());
+        } else {
+            this.bar.set('played', time / this.video.duration, 'width');
+            this.template.ptime.innerHTML = utils.secondToTime(time);
+        }
     }
 
     /**
@@ -495,6 +500,12 @@ class DPlayer {
             if (video.duration !== 1 && video.duration !== Infinity) {
                 this.template.dtime.innerHTML = utils.secondToTime(video.duration);
             }
+            if (video.duration === Infinity && this.plugins.dash) {
+                let dashjsPlayer = this.plugins.dash;
+                if (dashjsPlayer.isDynamic() && dashjsPlayer.duration()) {
+                    this.template.dtime.innerHTML = utils.secondToTime(dashjsPlayer.duration());
+                }
+            }
         });
 
         // show video loaded bar: to inform interested parties of progress downloading the media
@@ -539,12 +550,23 @@ class DPlayer {
         });
 
         this.on('timeupdate', () => {
-            if (!this.moveBar) {
-                this.bar.set('played', this.video.currentTime / this.video.duration, 'width');
-            }
-            const currentTime = utils.secondToTime(this.video.currentTime);
-            if (this.template.ptime.innerHTML !== currentTime) {
-                this.template.ptime.innerHTML = currentTime;
+            if (this.plugins.dash && this.plugins.dash.isDynamic()) {
+                let dashjsPlayer = this.plugins.dash;
+                if (!this.moveBar) {
+                    this.bar.set('played', dashjsPlayer.time() / dashjsPlayer.duration(), 'width');
+                }
+                const currentTime = utils.secondToTime(dashjsPlayer.time());
+                if (this.template.ptime.innerHTML !== currentTime) {
+                    this.template.ptime.innerHTML = currentTime;
+                }
+            } else {
+                if (!this.moveBar) {
+                    this.bar.set('played', this.video.currentTime / this.video.duration, 'width');
+                }
+                const currentTime = utils.secondToTime(this.video.currentTime);
+                if (this.template.ptime.innerHTML !== currentTime) {
+                    this.template.ptime.innerHTML = currentTime;
+                }
             }
         });
 
