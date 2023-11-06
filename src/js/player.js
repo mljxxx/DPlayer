@@ -210,7 +210,19 @@ class DPlayer {
         if (this.plugins.dash && this.plugins.dash.isDynamic()) {
             let dashjsPlayer = this.plugins.dash;
             this.bar.set('played', dashjsPlayer.time() / dashjsPlayer.duration(), 'width');
-            this.template.ptime.innerHTML = utils.secondToTime(dashjsPlayer.time());
+            let targetTime = dashjsPlayer.timeAsUTC();
+            let targetDate = new Date(targetTime * 1000);
+            const hour = targetDate.getHours() < 10 ? `0${targetDate.getHours()}` : targetDate.getHours();
+            const minute = targetDate.getMinutes() < 10 ? `0${targetDate.getMinutes()}` : targetDate.getMinutes();
+            const second = targetDate.getSeconds() < 10 ? `0${targetDate.getSeconds()}` : targetDate.getSeconds();
+            this.template.time.innerHTML = `<span class="dplayer-ptime">${hour}:${minute}:${second}</span>`;
+        } else if (this.plugins.shaka && this.plugins.shaka.isLive()) {
+            let shakaPlayer = this.plugins.shaka;
+            let targetDate = shakaPlayer.getPlayheadTimeAsDate();
+            const hour = targetDate.getHours() < 10 ? `0${targetDate.getHours()}` : targetDate.getHours();
+            const minute = targetDate.getMinutes() < 10 ? `0${targetDate.getMinutes()}` : targetDate.getMinutes();
+            const second = targetDate.getSeconds() < 10 ? `0${targetDate.getSeconds()}` : targetDate.getSeconds();
+            this.template.time.innerHTML = `<span class="dplayer-ptime">${hour}:${minute}:${second}</span>`;
         } else {
             this.bar.set('played', time / this.video.duration, 'width');
             this.template.ptime.innerHTML = utils.secondToTime(time);
@@ -500,12 +512,6 @@ class DPlayer {
             if (video.duration !== 1 && video.duration !== Infinity) {
                 this.template.dtime.innerHTML = utils.secondToTime(video.duration);
             }
-            if (video.duration === Infinity && this.plugins.dash) {
-                let dashjsPlayer = this.plugins.dash;
-                if (dashjsPlayer.isDynamic() && dashjsPlayer.duration()) {
-                    this.template.dtime.innerHTML = utils.secondToTime(dashjsPlayer.duration());
-                }
-            }
         });
 
         // show video loaded bar: to inform interested parties of progress downloading the media
@@ -555,10 +561,22 @@ class DPlayer {
                 if (!this.moveBar) {
                     this.bar.set('played', dashjsPlayer.time() / dashjsPlayer.duration(), 'width');
                 }
-                const currentTime = utils.secondToTime(dashjsPlayer.time());
-                if (this.template.ptime.innerHTML !== currentTime) {
-                    this.template.ptime.innerHTML = currentTime;
-                }
+                this.bar.set('played', dashjsPlayer.time() / dashjsPlayer.duration(), 'width');
+                let targetTime = dashjsPlayer.timeAsUTC();
+                let targetDate = new Date(targetTime * 1000);
+                const hour = targetDate.getHours() < 10 ? `0${targetDate.getHours()}` : targetDate.getHours();
+                const minute = targetDate.getMinutes() < 10 ? `0${targetDate.getMinutes()}` : targetDate.getMinutes();
+                const second = targetDate.getSeconds() < 10 ? `0${targetDate.getSeconds()}` : targetDate.getSeconds();
+                this.template.time.innerHTML = `<span class="dplayer-ptime">${hour}:${minute}:${second}</span>`;
+            } else if (this.plugins.shaka && this.plugins.shaka.isLive()) {
+                let shakaPlayer = this.plugins.shaka;
+                let percent = (shakaPlayer.getPlayheadTimeAsDate().valueOf() / 1000.0 - shakaPlayer.seekRange().start) / (shakaPlayer.seekRange().end - shakaPlayer.seekRange().start);
+                this.bar.set('played', percent, 'width');
+                let targetDate = shakaPlayer.getPlayheadTimeAsDate();
+                const hour = targetDate.getHours() < 10 ? `0${targetDate.getHours()}` : targetDate.getHours();
+                const minute = targetDate.getMinutes() < 10 ? `0${targetDate.getMinutes()}` : targetDate.getMinutes();
+                const second = targetDate.getSeconds() < 10 ? `0${targetDate.getSeconds()}` : targetDate.getSeconds();
+                this.template.time.innerHTML = `<span class="dplayer-ptime">${hour}:${minute}:${second}</span>`;
             } else {
                 if (!this.moveBar) {
                     this.bar.set('played', this.video.currentTime / this.video.duration, 'width');

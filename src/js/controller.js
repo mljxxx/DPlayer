@@ -123,10 +123,12 @@ class Controller {
             this.player.bar.set('played', percentage, 'width');
             if (this.player.plugins.dash && this.player.plugins.dash.isDynamic()) {
                 let dashjsPlayer = this.player.plugins.dash;
-                let liveDeley = dashjsPlayer.duration() * (1 - this.player.bar.get('played'));
-                let currentTime = Date.now() / 1000.0;
-
-                this.player.seek(currentTime - liveDeley);
+                let currentTime = dashjsPlayer.getDVRSeekOffset(0) + this.player.bar.get('played') * dashjsPlayer.duration();
+                this.player.seek(currentTime);
+            } else if (this.player.plugins.shaka && this.player.plugins.shaka.isLive()) {
+                let shakaPlayer = this.player.plugins.shaka;
+                let targetTime = shakaPlayer.seekRange().start + (shakaPlayer.seekRange().end - shakaPlayer.seekRange().start) * this.player.bar.get('played');
+                this.player.seek(targetTime);
             } else {
                 this.player.seek(this.player.bar.get('played') * this.player.video.duration);
             }
@@ -152,7 +154,25 @@ class Controller {
                 }
                 this.thumbnails && this.thumbnails.move(tx);
                 this.player.template.playedBarTime.style.left = `${tx - (time >= 3600 ? 25 : 20)}px`;
-                this.player.template.playedBarTime.innerText = utils.secondToTime(time);
+                if (this.player.plugins.dash && this.player.plugins.dash.isDynamic()) {
+                    let dashjsPlayer = this.player.plugins.dash;
+                    let targetTime = dashjsPlayer.getDVRSeekOffset(0) + dashjsPlayer.duration() * (tx / this.player.template.playedBarWrap.offsetWidth);
+                    let targetDate = new Date(targetTime * 1000);
+                    const hour = targetDate.getHours() < 10 ? `0${targetDate.getHours()}` : targetDate.getHours();
+                    const minute = targetDate.getMinutes() < 10 ? `0${targetDate.getMinutes()}` : targetDate.getMinutes();
+                    const second = targetDate.getSeconds() < 10 ? `0${targetDate.getSeconds()}` : targetDate.getSeconds();
+                    this.player.template.playedBarTime.innerText = `${hour}:${minute}:${second}`;
+                } else if (this.player.plugins.shaka && this.player.plugins.shaka.isLive()) {
+                    let shakaPlayer = this.player.plugins.shaka;
+                    let targetTime = shakaPlayer.seekRange().start + (shakaPlayer.seekRange().end - shakaPlayer.seekRange().start) * (tx / this.player.template.playedBarWrap.offsetWidth);
+                    let targetDate = new Date(targetTime * 1000);
+                    const hour = targetDate.getHours() < 10 ? `0${targetDate.getHours()}` : targetDate.getHours();
+                    const minute = targetDate.getMinutes() < 10 ? `0${targetDate.getMinutes()}` : targetDate.getMinutes();
+                    const second = targetDate.getSeconds() < 10 ? `0${targetDate.getSeconds()}` : targetDate.getSeconds();
+                    this.player.template.playedBarTime.innerText = `${hour}:${minute}:${second}`;
+                } else {
+                    this.player.template.playedBarTime.innerText = utils.secondToTime(time);
+                }
                 this.player.template.playedBarTime.classList.remove('hidden');
             }
         });
